@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 interface DataModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any[];
+  data: Record<string, unknown>[];
   title?: string;
 }
 
@@ -32,7 +32,7 @@ export function DataModal({
   if (!data || data.length === 0) return null;
 
   // Get all unique keys from all objects to create table headers
-  const getAllKeys = (items: any[]): string[] => {
+  const getAllKeys = (items: Record<string, unknown>[]): string[] => {
     const keySet = new Set<string>();
     items.forEach((item) => {
       if (typeof item === "object" && item !== null) {
@@ -45,7 +45,7 @@ export function DataModal({
   const keys = getAllKeys(data);
 
   // Function to render cell value
-  const renderCellValue = (value: any): string => {
+  const renderCellValue = (value: unknown): string => {
     if (value === null || value === undefined) {
       return "";
     }

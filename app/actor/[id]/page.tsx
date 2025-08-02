@@ -1,19 +1,12 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { ModeToggle } from "@/components/ui/theme-switcher";
 import { DataModal } from "@/components/ui/data-modal";
-
-interface ActorSchema {
-  title?: string;
-  type: string;
-  properties?: Record<string, any>;
-  required?: string[];
-}
+import Image from "next/image";
 
 interface ActorDetails {
   id: string;
@@ -116,12 +109,12 @@ export default function ActorPage() {
 
   const [apiKey, setApiKey] = useState("");
   const [actor, setActor] = useState<ActorDetails | null>(null);
-  const [inputSchema, setInputSchema] = useState<ActorSchema | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<RunResult | null>(null);
-  const [inputData, setInputData] = useState<Record<string, any>>({});
-  const [datasetResults, setDatasetResults] = useState<any[]>([]);
+  const [datasetResults, setDatasetResults] = useState<
+    Record<string, unknown>[]
+  >([]);
   const [fetchingResults, setFetchingResults] = useState(false);
   const [editableInput, setEditableInput] = useState<string>("");
   const [isDataModalOpen, setIsDataModalOpen] = useState(false);
@@ -135,7 +128,12 @@ export default function ActorPage() {
       return;
     }
     setApiKey(storedApiKey);
-    fetchActorSchema(storedApiKey);
+
+    const fetchActorSchemaWithKey = async () => {
+      await fetchActorSchema(storedApiKey);
+    };
+
+    fetchActorSchemaWithKey();
   }, [actorId, router]);
 
   const fetchActorSchema = async (key: string) => {
@@ -211,7 +209,7 @@ export default function ActorPage() {
       let parsedInput = {};
       try {
         parsedInput = JSON.parse(editableInput);
-      } catch (error) {
+      } catch {
         toast.error("Invalid JSON in input. Please check your input format.");
         setRunning(false);
         return;
@@ -321,129 +319,6 @@ export default function ActorPage() {
     }
   };
 
-  const handleInputChange = (fieldName: string, value: any) => {
-    setInputData((prev) => ({
-      ...prev,
-      [fieldName]: value,
-    }));
-  };
-
-  const renderInputField = (fieldName: string, fieldSchema: any) => {
-    const { type, title, description, default: defaultValue } = fieldSchema;
-
-    switch (type) {
-      case "string":
-        return (
-          <div key={fieldName} className="mb-4">
-            <label
-              htmlFor={fieldName}
-              className="block text-sm font-medium mb-2"
-            >
-              {title || fieldName}
-              {inputSchema?.required?.includes(fieldName) && (
-                <span className="text-red-500 ml-1">*</span>
-              )}
-            </label>
-            {description && (
-              <p className="text-xs text-gray-500 mb-2">{description}</p>
-            )}
-            <Input
-              id={fieldName}
-              type="text"
-              value={inputData[fieldName] || ""}
-              onChange={(e) => handleInputChange(fieldName, e.target.value)}
-              placeholder={defaultValue || `Enter ${title || fieldName}`}
-            />
-          </div>
-        );
-
-      case "number":
-      case "integer":
-        return (
-          <div key={fieldName} className="mb-4">
-            <label
-              htmlFor={fieldName}
-              className="block text-sm font-medium mb-2"
-            >
-              {title || fieldName}
-              {inputSchema?.required?.includes(fieldName) && (
-                <span className="text-red-500 ml-1">*</span>
-              )}
-            </label>
-            {description && (
-              <p className="text-xs text-gray-500 mb-2">{description}</p>
-            )}
-            <Input
-              id={fieldName}
-              type="number"
-              value={inputData[fieldName] || ""}
-              onChange={(e) =>
-                handleInputChange(fieldName, parseFloat(e.target.value) || 0)
-              }
-              placeholder={
-                defaultValue?.toString() || `Enter ${title || fieldName}`
-              }
-            />
-          </div>
-        );
-
-      case "boolean":
-        return (
-          <div key={fieldName} className="mb-4">
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={inputData[fieldName] || false}
-                onChange={(e) => handleInputChange(fieldName, e.target.checked)}
-                className="rounded"
-              />
-              <span className="text-sm font-medium">
-                {title || fieldName}
-                {inputSchema?.required?.includes(fieldName) && (
-                  <span className="text-red-500 ml-1">*</span>
-                )}
-              </span>
-            </label>
-            {description && (
-              <p className="text-xs text-gray-500 mt-1">{description}</p>
-            )}
-          </div>
-        );
-
-      default:
-        return (
-          <div key={fieldName} className="mb-4">
-            <label
-              htmlFor={fieldName}
-              className="block text-sm font-medium mb-2"
-            >
-              {title || fieldName}
-              {inputSchema?.required?.includes(fieldName) && (
-                <span className="text-red-500 ml-1">*</span>
-              )}
-            </label>
-            {description && (
-              <p className="text-xs text-gray-500 mb-2">{description}</p>
-            )}
-            <textarea
-              id={fieldName}
-              value={JSON.stringify(inputData[fieldName] || {}, null, 2)}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value);
-                  handleInputChange(fieldName, parsed);
-                } catch {
-                  // Invalid JSON, keep as string for now
-                }
-              }}
-              className="w-full p-2 border border-gray-300 rounded-md min-h-[100px] font-mono text-sm"
-              placeholder={`Enter ${title || fieldName} (JSON format)`}
-            />
-          </div>
-        );
-    }
-  };
-
   if (loading) {
     return (
       <div className="font-sans min-h-screen p-8 flex items-center justify-center">
@@ -503,9 +378,11 @@ export default function ActorPage() {
             <div className="border border-border/50 rounded-lg p-6">
               <div className="flex items-start gap-4 mb-4">
                 {actor.pictureUrl && (
-                  <img
+                  <Image
                     src={actor.pictureUrl}
                     alt={actor.title}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-lg object-cover border border-border/50"
                   />
                 )}
@@ -712,8 +589,8 @@ export default function ActorPage() {
                   Actor Input (JSON)
                 </h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Edit the JSON input below. Use the "Run Actor" button at the
-                  top to execute with your custom parameters.
+                  Edit the JSON input below. Use the &quot;Run Actor&quot;
+                  button at the top to execute with your custom parameters.
                 </p>
 
                 <textarea
@@ -735,7 +612,7 @@ export default function ActorPage() {
                         );
                         setEditableInput(formatted);
                         toast.success("JSON formatted!");
-                      } catch (error) {
+                      } catch {
                         toast.error("Invalid JSON - cannot format");
                       }
                     }}
@@ -1200,8 +1077,8 @@ export default function ActorPage() {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Dataset results are ready to view. Click "View Results" to see
-                  them in a structured table format.
+                  Dataset results are ready to view. Click &quot;View
+                  Results&quot; to see them in a structured table format.
                 </p>
                 {datasetResults.length === 50 && (
                   <p className="text-xs text-muted-foreground mt-2">
